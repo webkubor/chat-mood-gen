@@ -3,6 +3,14 @@
 > [English](README.en.md) | 中文
 
 
+<p align="center">
+  <a href="https://github.com/webkubor/chat-mood-gen/blob/main/LICENSE"><img src="https://img.shields.io/github/license/webkubor/chat-mood-gen?style=for-the-badge&color=gold" alt="License"></a>
+  <a href="https://github.com/webkubor/chat-mood-gen"><img src="https://img.shields.io/github/stars/webkubor/chat-mood-gen?style=for-the-badge&color=coral" alt="Stars"></a>
+  <a href="https://github.com/webkubor/chat-mood-gen"><img src="https://img.shields.io/github/languages/top/webkubor/chat-mood-gen?style=for-the-badge&color=333333" alt="语言"></a>
+  <a href="https://github.com/webkubor/chat-mood-gen/forks"><img src="https://img.shields.io/github/forks/webkubor/chat-mood-gen?style=for-the-badge&color=8b949e" alt="forks"></a>
+  <a href="https://github.com/webkubor/chat-mood-gen"><img src="https://img.shields.io/badge/Vue%203-333333?style=for-the-badge" alt="Vue 3"></a>
+</p>
+
 一个用于生成高质感微信 + 小红书种草氛围图的前端应用，支持对话、拉人、列表、朋友圈、小红书五种模式，支持语料库管理与批量导出截图。
 
 **在线体验 → [wechat.webkubor.online](https://wechat.webkubor.online)**（无需注册，打开即用）
