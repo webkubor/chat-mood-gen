@@ -1,4 +1,4 @@
-<p align="center"><img src="https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/logo.svg" width="96" alt="Chat Mood Gen logo"></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/mark-v3-dark.svg"><img src="https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/mark-v3.svg" width="96" alt="Chat Mood Gen logo"></picture></p>
 
 # WeChat Chat Gen
 
