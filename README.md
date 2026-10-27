@@ -21,18 +21,18 @@
 
 | 对话模式 | 拉人模式 |
 |---|---|
-| ![对话模式](docs/screenshots/01-chat.png) | ![拉人模式](docs/screenshots/02-invite.png) |
+| ![对话模式](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/01-chat.webp) | ![拉人模式](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/02-invite.webp) |
 | 群聊气泡、红包、自定义背景与头像 | 邀请入群的系统提示流，人名自动染微信蓝 |
 
 | 列表模式 | 朋友圈 |
 |---|---|
-| ![列表模式](docs/screenshots/03-list.png) | ![朋友圈](docs/screenshots/04-moments.png) |
+| ![列表模式](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/03-list.webp) | ![朋友圈](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/04-moments.webp) |
 | 批量生成会话列表，含未读红点与九宫格群头像 | 动态配图、话题词、地点与评论 |
 
 > 第五个 tab「小红书」从 v1.2.0 起提供，截图见 [`docs/screenshots/06-xhs.png`](docs/screenshots/06-xhs.png)。
 > 笔记复刻小红书 feed：3:4 封面 + 标题浮层 + 作者（小红薯徽标）+ `#话题词` 蓝色高亮 + 三栏互动（点赞/收藏/评论）。模式指示色 `#FF2442`，与微信系 `#7A9D8C` 形成视觉区分。
 
-![藏宝库](docs/screenshots/05-treasure.png)
+![藏宝库](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/05-treasure.webp)
 
 > 藏宝库：语料 / 昵称 / 头像三个库，**数据只存在本机浏览器 IndexedDB，不上传**。
 

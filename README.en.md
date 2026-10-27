@@ -12,15 +12,15 @@ Four modes share the same left-side phone preview + right-side config panel. Cha
 
 | Chat mode | Invite mode |
 |---|---|
-| ![Chat mode](docs/screenshots/01-chat.png) | ![Invite mode](docs/screenshots/02-invite.png) |
+| ![Chat mode](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/01-chat.webp) | ![Invite mode](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/02-invite.webp) |
 | Group bubbles, red packets, custom backgrounds and avatars | Invite-to-group system flow, names auto-tinted in WeChat blue |
 
 | List mode | Moments |
 |---|---|
-| ![List mode](docs/screenshots/03-list.png) | ![Moments](docs/screenshots/04-moments.png) |
+| ![List mode](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/03-list.webp) | ![Moments](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/04-moments.webp) |
 | Batch-generate conversation lists, with unread red dots and 3×3 group avatars | Dynamic images, hashtags, locations, and comments |
 
-![Treasure Vault](docs/screenshots/05-treasure.png)
+![Treasure Vault](https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/05-treasure.webp)
 
 > Treasure Vault: corpus / nickname / avatar — **data lives only in the local browser's IndexedDB, never uploaded**.
 
