@@ -128,6 +128,6 @@ src/
 ## 数据与隐私
 
 - 语料库、朋友圈会话、小红书会话均保存在浏览器 IndexedDB 中，仅存本地。
-- 随机头像默认走项目自托管图床 [`webkubor/picx-images-hosting`](https://github.com/webkubor/picx-images-hosting) 的 `person/` 目录（16 张 JPG），不再使用 DiceBear / randomuser.me 等第三方。
+- 随机头像默认走项目自托管图床 [`webkubor/free-imgbed`](https://github.com/webkubor/free-imgbed) 的 `person/` 目录（16 张 JPG），不再使用 DiceBear / randomuser.me 等第三方。
 - 仍支持上传自定义头像到本地 IndexedDB；上传上限 50 张，至少保留 10 张。
 - 云端同步功能保留但默认关闭，如需启用请在环境变量中设置 `VITE_CLOUD_SYNC_ENABLED=true`。
