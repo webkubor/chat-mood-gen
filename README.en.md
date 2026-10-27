@@ -1,3 +1,5 @@
+<p align="center"><img src="https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/chat-mood-gen/logo.svg" width="96" alt="Chat Mood Gen logo"></p>
+
 # WeChat Chat Gen
 
 A front-end app for generating high-quality WeChat chat-style mockup images. Supports four modes — chat / invite / list / Moments — plus corpus management and batch screenshot export.
