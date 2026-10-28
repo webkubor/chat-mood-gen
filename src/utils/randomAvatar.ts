@@ -1,6 +1,6 @@
-// 项目自托管图床 —— webkubor/picx-images-hosting 的 person/ 目录
+// 项目自托管图床 —— webkubor/free-imgbed 的 person/ 目录
 //
-// 真人头像，16 张 JPG（01–16.jpg），可直接挂在 random 头像池里。
+// 真人头像，16 张（01–16.webp），可直接挂在 random 头像池里。
 // 不再依赖 DiceBear / randomuser.me / avatars.githubusercontent.com 等公共源。
 export interface RandomAvatarSource {
   name: string
@@ -18,23 +18,27 @@ function isValidRandomAvatarSource(obj: any): obj is RandomAvatarSource {
          typeof obj.totalCount === 'number'
 }
 
-// picx-images-hosting /person 共 16 张（01.jpg – 16.jpg）
+// free-imgbed /person 共 16 张（01.webp – 16.webp）
 // URL 走 jsdelivr CDN —— 与 webkubor 生态其他项目（typora-Bloom-theme /
 // dsh-bloom-theme 等）的资源引用方式一致；raw.githubusercontent.com 也可用但
 // 走 jsdelivr 有全球 CDN 加速和无 CORS / 限流问题。
+//
+// 2026-10-28：仓名由 picx-images-hosting 改为 free-imgbed（GitHub 301 重定向，
+// 但 jsDelivr 不跟随，旧名 URL 全部 404）；分支是 main 不是 master；图已统一
+// 压缩为 webp。旧名/旧扩展名/旧分支三者任一错，图片就加载不出来。
 const PICS_PERSON_COUNT = 16
-const PICS_BASE_URL = 'https://cdn.jsdelivr.net/gh/webkubor/picx-images-hosting@master/person'
+const PICS_BASE_URL = 'https://cdn.jsdelivr.net/gh/webkubor/free-imgbed@main/person'
 
 const PERSON_AVATARS: string[] = Array.from({ length: PICS_PERSON_COUNT }, (_, i) => {
   const n = String(i + 1).padStart(2, '0')
-  return `${PICS_BASE_URL}/${n}.jpg`
+  return `${PICS_BASE_URL}/${n}.webp`
 })
 
 export const RANDOM_AVATAR_SOURCES: RandomAvatarSource[] = [
   {
     name: '项目图床',
     avatars: PERSON_AVATARS,
-    description: `picx-images-hosting/person · ${PICS_PERSON_COUNT} 张`,
+    description: `free-imgbed/person · ${PICS_PERSON_COUNT} 张`,
     totalCount: PICS_PERSON_COUNT
   }
 ]
