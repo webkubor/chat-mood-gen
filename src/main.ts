@@ -1,3 +1,4 @@
+import { trackUsage } from './utils/analytics'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
@@ -40,3 +41,6 @@ app.config.errorHandler = (err) => handleError(err)
 app.use(createPinia())
 app.use(router)
 app.mount('#app')
+
+// Count a loaded application once; editor state and route names stay local.
+trackUsage('page.view')

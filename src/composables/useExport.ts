@@ -1,3 +1,4 @@
+import { trackUsage } from '../utils/analytics'
 import { ref, onBeforeUnmount } from 'vue'
 import { toCanvas } from 'html-to-image'
 import JSZip from 'jszip'
@@ -42,6 +43,7 @@ export function useExport() {
     link.style.display = 'none'
     document.body.appendChild(link)
     link.click()
+    trackUsage('image.export')
     setTimeout(() => {
       link.remove()
       URL.revokeObjectURL(link.href)

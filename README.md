@@ -133,3 +133,7 @@ src/
 - 随机头像默认走项目自托管图床 [`webkubor/free-imgbed`](https://github.com/webkubor/free-imgbed) 的 `person/` 目录（16 张 JPG），不再使用 DiceBear / randomuser.me 等第三方。
 - 仍支持上传自定义头像到本地 IndexedDB；上传上限 50 张，至少保留 10 张。
 - 云端同步功能保留但默认关闭，如需启用请在环境变量中设置 `VITE_CLOUD_SYNC_ENABLED=true`。
+
+## 匿名使用统计
+
+仅向统一 Core API 发送页面打开与成功触发导出的事件计数，不发送聊天、图片、标题、文件名、网址或用户标识。浏览器 DNT 会关闭采集；也可在本站控制台执行 `localStorage.setItem('usage-analytics', 'off')` 退出统计。图片处理仍全部在本地完成。导出计数表示文件已生成并触发浏览器下载，无法确认用户最终保存。
