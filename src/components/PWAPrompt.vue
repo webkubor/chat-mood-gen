@@ -118,8 +118,8 @@ const handleUpdate = async () => {
     <transition name="slide-up">
       <div v-if="showInstallGuide && deferredPrompt" class="mt-3 pointer-events-auto bg-white/10 backdrop-blur-2xl p-4 rounded-3xl shadow-2xl border border-white/10 flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-[#7A9D8C] rounded-2xl flex items-center justify-center shadow-lg">
-            <img src="/logo.svg" class="w-6 h-6 invert brightness-0" />
+          <div class="w-10 h-10 bg-[#2C3639] rounded-2xl flex items-center justify-center shadow-lg">
+            <img src="/logo-dark.svg" class="w-6 h-6" alt="" />
           </div>
           <div>
             <p class="text-xs font-bold text-[#7A9D8C]">WeChat Gen</p>
@@ -136,8 +136,8 @@ const handleUpdate = async () => {
     <!-- 场景 C: iOS 手动引导 -->
     <transition name="slide-up">
       <div v-if="showInstallGuide && isIOS && !deferredPrompt" class="mt-3 pointer-events-auto bg-white/10 backdrop-blur-2xl p-5 rounded-[2.5rem] shadow-2xl border border-white/10 flex flex-col items-center text-center">
-        <div class="w-12 h-12 bg-[#7A9D8C] rounded-2xl flex items-center justify-center shadow-lg mb-3">
-          <img src="/logo.svg" class="w-7 h-7 invert brightness-0" />
+        <div class="w-12 h-12 bg-[#2C3639] rounded-2xl flex items-center justify-center shadow-lg mb-3">
+          <img src="/logo-dark.svg" class="w-7 h-7" alt="" />
         </div>
         <h4 class="text-sm font-bold text-white mb-1">添加到主屏幕</h4>
         <p class="text-[11px] text-white/50 leading-relaxed mb-4">

@@ -63,7 +63,7 @@ export default defineConfig(() => {
     changelogJson(),
     VitePWA({
       registerType: 'prompt', // 关键：检测到更新时提示用户，最安全
-      includeAssets: ['favicon.ico', 'logo.svg', 'assets/*.jpg'],
+      includeAssets: ['favicon.ico', 'logo.svg', 'logo-dark.svg', 'assets/*.jpg'],
       manifest: {
         name: 'WeChat Gen - 莫兰迪聊天生成器',
         short_name: 'WeChatGen',
