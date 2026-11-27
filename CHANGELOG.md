@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-11-28
+
+- 换上青潮渐变标识，适配编辑器、浏览器标签页和安装图标
 
 ## [1.2.1] - 2026-11-27
 

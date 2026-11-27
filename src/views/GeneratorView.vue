@@ -116,7 +116,10 @@ const handleModeChange = (mode: 'chat' | 'join' | 'list' | 'moments' | 'xhs') =>
       :class="isEditorOpen ? 'flex max-h-[85dvh]' : 'hidden lg:flex'">
       <header class="shrink-0 space-y-3 border-b border-white/10 px-5 py-4 lg:px-6">
         <div class="flex items-center justify-between gap-2">
-          <h1 id="editor-title" class="text-lg font-semibold text-[#E8F1F2]">Chat Mood Gen</h1>
+          <h1 id="editor-title" class="flex items-center gap-2 text-lg font-semibold text-[#E8F1F2]">
+            <img src="/logo-dark.svg" width="32" height="32" alt="" />
+            Chat Mood Gen
+          </h1>
           <router-link to="/treasure" class="text-sm text-[#b7d3c4] hover:underline">素材库</router-link>
         </div>
         <button ref="closeButton" type="button" class="editor-button lg:hidden" @click="closeEditor">返回预览</button>
