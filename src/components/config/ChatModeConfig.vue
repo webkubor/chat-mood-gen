@@ -13,13 +13,10 @@ const { playSuccess, playWater } = useSound()
 const genCount = ref(10)
 const MIN_GEN_COUNT = 5
 const MAX_GEN_COUNT = 60
-const hasMessages = computed(() => chatStore.messages.length > 0)
+const hasMessages = computed(() => chatStore.activeMessages.length > 0)
 
 onMounted(async () => {
   await corpusStore.init()
-  if (chatStore.messages.length === 0) {
-    chatStore.batchAddRandomDialog(genCount.value)
-  }
 })
 
 watch(genCount, (value) => {
@@ -112,12 +109,12 @@ const handleIdiomReplace = () => {
     window.$message?.info('请输入内容')
     return
   }
-  if (chatStore.messages.length === 0) {
+  if (chatStore.activeMessages.length === 0) {
     window.$message?.info('暂无消息可替换')
     return
   }
 
-  chatStore.messages.forEach((msg) => {
+  chatStore.activeMessages.forEach((msg) => {
     if (msg.type === 'text') {
       msg.content = text
     }

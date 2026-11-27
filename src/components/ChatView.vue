@@ -78,6 +78,19 @@ const handlePaste = (e: ClipboardEvent) => {
   }
 }
 
+const editedFields = new WeakSet<HTMLElement>()
+
+const markEdited = (event: Event) => {
+  if (event.target instanceof HTMLElement) editedFields.add(event.target)
+}
+
+const saveEdit = (event: FocusEvent, id: string, field: 'content' | 'name') => {
+  const element = event.target
+  if (element instanceof HTMLElement && editedFields.delete(element)) {
+    chatStore.updateMessage(id, field, element.innerText)
+  }
+}
+
 const onRemoveMessageClick = (id: string) => {
   chatStore.removeMessage(id)
   playWater()
@@ -91,7 +104,7 @@ const handleSystemMessageDoubleClick = (id: string) => {
 
 <template>
   <div class="p-4 space-y-4 pb-10 pt-2">
-    <div v-for="msg in chatStore.messages" :key="msg.id" class="flex flex-col group/msg relative">
+    <div v-for="msg in chatStore.activeMessages" :key="msg.id" class="flex flex-col group/msg relative">
 
       <!-- 时间戳分隔（真实微信每隔一段会插一条时间，填了 timestamp 才显示） -->
       <div v-if="msg.timestamp" class="flex justify-center my-1">
@@ -154,7 +167,8 @@ const handleSystemMessageDoubleClick = (id: string) => {
             v-if="!msg.isMe && chatStore.isGroupChat"
             class="mb-0.5 ml-0.5 scale-90 origin-bottom-left outline-none min-w-[20px]"
             contenteditable
-            @blur="(e) => chatStore.updateMessage(msg.id, 'name', (e.target as HTMLElement).innerText)"
+            @input="markEdited"
+            @blur="saveEdit($event, msg.id, 'name')"
             @paste="handlePaste"
             :style="{
               color: chatStore.nicknameColor,
@@ -231,7 +245,8 @@ const handleSystemMessageDoubleClick = (id: string) => {
               ]"
               :style="getBubbleStyle(msg.isMe)"
               contenteditable
-              @blur="(e) => chatStore.updateMessage(msg.id, 'content', (e.target as HTMLElement).innerText)"
+              @input="markEdited"
+              @blur="saveEdit($event, msg.id, 'content')"
               @paste="handlePaste"
             >
               {{ msg.content }}

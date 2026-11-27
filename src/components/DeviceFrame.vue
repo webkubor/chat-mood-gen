@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useChatStore } from '../stores/chat'
+import { getCaptureBounds } from '../utils/capture'
 import InputBarIcons from './InputBarIcons.vue'
 import StatusBarIcons from './StatusBarIcons.vue'
 import AndroidNavBar from './AndroidNavBar.vue'
 import { useSound } from '../composables/useSound'
+
+const props = withDefaults(defineProps<{ showComposer?: boolean }>(), { showComposer: true })
 
 const chatStore = useChatStore()
 const { playSuccess } = useSound()
@@ -15,7 +18,7 @@ const scrollContainer = ref<HTMLElement | null>(null)
 const isDark = computed(() => chatStore.previewTheme === 'dark')
 const captureTop = ref(0)
 const captureHeight = ref(0)
-const inputText = ref('')
+const inputText = defineModel<string>('composer', { default: '' })
 const isReadyToSend = computed(() => inputText.value.trim().length > 0)
 
 const backgroundStyle = computed(() => {
@@ -35,33 +38,31 @@ const backgroundStyle = computed(() => {
 const updateCaptureHeight = () => {
   const element = screenRef.value
   if (!element) return
-  const width = element.clientWidth
-  const height = element.clientHeight
-  const top = titleBarRef.value ? Math.max(0, titleBarRef.value.offsetTop + 6) : 0
-  const availableHeight = Math.max(0, height - top)
-  const targetHeight = Math.round(width * 4 / 3)
-  captureTop.value = top
-  captureHeight.value = chatStore.exportRatio === '3:4'
-    ? Math.min(targetHeight, availableHeight)
-    : availableHeight
+  const bounds = getCaptureBounds(element, titleBarRef.value, chatStore.exportRatio, chatStore.keepStatusBar)
+  captureTop.value = bounds.top
+  captureHeight.value = bounds.visibleHeight
 }
 
-watch(() => chatStore.messages.length, () => {
+const scrollToLatest = () => {
+  if (!props.showComposer) return
   nextTick(() => {
     if (scrollContainer.value) {
       scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
     }
   })
-})
+}
+
+watch(() => chatStore.activeMessages.at(-1)?.id, scrollToLatest)
 
 let resizeObserver: ResizeObserver | null = null
 
-watch(() => chatStore.exportRatio, () => {
+watch(() => [chatStore.exportRatio, chatStore.keepStatusBar, chatStore.deviceType], () => {
   nextTick(() => updateCaptureHeight())
 })
 
 onMounted(() => {
   updateCaptureHeight()
+  scrollToLatest()
   if (screenRef.value && 'ResizeObserver' in window) {
     resizeObserver = new ResizeObserver(() => updateCaptureHeight())
     resizeObserver.observe(screenRef.value)
@@ -89,6 +90,12 @@ const onSendClick = () => {
   playSuccess()
 }
 
+const onComposerEnter = (event: KeyboardEvent) => {
+  if (event.isComposing) return
+  event.preventDefault()
+  onSendClick()
+}
+
 onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   window.removeEventListener('resize', updateCaptureHeight)
@@ -103,7 +110,6 @@ onBeforeUnmount(() => {
       ref="screenRef"
       :class="[
         'relative transition-all duration-500 bg-[#121212] box-content',
-        chatStore.isHighlightingCapture ? 'ring-4 ring-[#7A9D8C] ring-offset-8 animate-pulse' : '',
         // 移动端逻辑：md以下 100vw/100vh，无圆角，无阴影
         'w-screen h-screen md:h-[812px] rounded-none md:shadow-[0_0_0_12px_#222,0_0_0_13px_#333,0_30px_60px_-15px_rgba(0,0,0,0.3)]',
         // PC端逻辑：恢复固定尺寸和圆角
@@ -114,6 +120,7 @@ onBeforeUnmount(() => {
     >
       <div
         v-if="chatStore.isHighlightingCapture"
+        data-export-ignore
         class="absolute left-0 z-40 pointer-events-none"
         :style="{ top: `${captureTop}px`, width: '100%', height: `${captureHeight}px` }"
       >
@@ -182,12 +189,12 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- 2. 聊天内容区域 -->
-        <div ref="scrollContainer" class="flex-1 overflow-y-auto scrollbar-hide relative z-0 scroll-smooth">
+        <div ref="scrollContainer" data-export-scroll class="flex-1 overflow-y-auto scrollbar-hide relative z-0 scroll-smooth">
           <slot></slot>
         </div>
 
         <!-- 3. 底部输入栏 (高保真模拟) -->
-        <div id="wechat-input-bar" class="relative z-20">
+        <div v-if="showComposer" id="wechat-input-bar" class="relative z-20">
           <div
             class="border-t px-3 pt-2 pb-[max(10px,env(safe-area-inset-bottom))] transition-colors duration-300"
             :class="isDark ? 'bg-[#191919] border-white/5' : 'bg-[#f7f7f7] border-black/5'"
@@ -205,7 +212,7 @@ onBeforeUnmount(() => {
                 :class="isDark
                   ? 'bg-[#2c2c2e] border-transparent text-white/90 placeholder-white/40'
                   : 'bg-white border-black/[0.03] text-black/90 placeholder-black/40'"
-                @keydown.enter.prevent="onSendClick"
+                @keydown.enter="onComposerEnter"
               />
 
               <button

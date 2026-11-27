@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useChatStore } from '../stores/chat'
+import { getCaptureBounds } from '../utils/capture'
 import StatusBarIcons from './StatusBarIcons.vue'
 import AndroidNavBar from './AndroidNavBar.vue'
 
@@ -18,21 +19,12 @@ const isDark = computed(() => chatStore.previewTheme === 'dark')
 const updateCaptureHeight = () => {
   const element = screenRef.value
   if (!element) return
-  const width = element.clientWidth
-  const height = element.clientHeight
-  const top = titleBarRef.value ? Math.max(0, titleBarRef.value.offsetTop + 6) : 0
-  const availableHeight = Math.max(0, height - top)
-  const ratio = chatStore.exportRatio
-  const targetHeight = ratio === '3:4'
-    ? Math.round(width * 4 / 3)
-    : ratio === '1:3'
-      ? Math.round(width * 3)
-      : availableHeight
-  captureTop.value = top
-  captureHeight.value = Math.min(targetHeight, availableHeight)
+  const bounds = getCaptureBounds(element, titleBarRef.value, chatStore.exportRatio, chatStore.keepStatusBar)
+  captureTop.value = bounds.top
+  captureHeight.value = bounds.visibleHeight
 }
 
-watch(() => chatStore.exportRatio, () => {
+watch(() => [chatStore.exportRatio, chatStore.keepStatusBar, chatStore.deviceType], () => {
   nextTick(() => updateCaptureHeight())
 })
 
@@ -58,13 +50,13 @@ onBeforeUnmount(() => {
       ref="screenRef"
       :class="[
         'relative transition-all duration-500 bg-[#121212] box-content',
-          chatStore.isHighlightingCapture ? 'ring-4 ring-[#FF2442] ring-offset-8 animate-pulse' : '',
           'w-screen h-screen md:h-[812px] rounded-none md:shadow-[0_0_0_12px_#222,0_0_0_13px_#333,0_30px_60px_-15px_rgba(0,0,0,0.3)]',
           chatStore.deviceType === 'ios' ? 'md:w-[375px] md:rounded-[55px]' : 'md:w-[360px] md:h-[780px] md:rounded-[35px]'
         ]"
     >
       <div
         v-if="chatStore.isHighlightingCapture"
+        data-export-ignore
         class="absolute left-0 z-40 pointer-events-none"
         :style="{ top: `${captureTop}px`, width: '100%', height: `${captureHeight}px` }"
       >
@@ -135,7 +127,7 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- 内容滚动区 -->
-        <div class="flex-1 overflow-y-auto scrollbar-hide relative z-0">
+        <div data-export-scroll class="flex-1 overflow-y-auto scrollbar-hide relative z-0">
           <slot></slot>
         </div>
 

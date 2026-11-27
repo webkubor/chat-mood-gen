@@ -1,4 +1,4 @@
-import { DB_STORES, type ChatSession, type PreviewQueueItem, type AvatarItem, type MomentsSession, type XhsSession } from '../types/database'
+import { DB_STORES, type ChatMessage, type ChatSession, type PreviewQueueItem, type AvatarItem, type MomentsSession, type XhsSession } from '../types/database'
 
 const DB_NAME = 'wechat_gen_db'
 const DB_VERSION = 9 // 升级版本以增加小红书模式
@@ -230,13 +230,19 @@ class LocalDB {
 
   // --- 聊天记录 API ---
 
-  async saveChatSession(data: ChatSession): Promise<void> {
+  async saveChatSession(data: ChatSession, changes: Partial<ChatSession>): Promise<void> {
     const db = await this.getDB()
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_CHAT, 'readwrite')
-      tx.objectStore(STORE_CHAT).put(data)
+      const store = tx.objectStore(STORE_CHAT)
+      const record = store.get(data.key)
+      record.onsuccess = () => {
+        const existing = record.result as ChatSession | undefined
+        store.put({ ...(existing ?? data), ...changes, updated_at: data.updated_at })
+      }
       tx.oncomplete = () => resolve()
       tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
     })
   }
 
@@ -247,6 +253,26 @@ class LocalDB {
       const req = tx.objectStore(STORE_CHAT).get('current')
       req.onsuccess = () => resolve(req.result as ChatSession || null)
       req.onerror = () => reject(req.error)
+    })
+  }
+
+  async saveJoinMessages(messages: ChatMessage[]): Promise<void> {
+    const db = await this.getDB()
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_CHAT, 'readwrite')
+      transaction.objectStore(STORE_CHAT).put({ key: 'join', messages, updated_at: new Date() })
+      transaction.oncomplete = () => resolve()
+      transaction.onabort = () => reject(transaction.error)
+      transaction.onerror = () => reject(transaction.error)
+    })
+  }
+
+  async loadJoinMessages(): Promise<ChatMessage[] | null> {
+    const db = await this.getDB()
+    return new Promise((resolve, reject) => {
+      const request = db.transaction(STORE_CHAT, 'readonly').objectStore(STORE_CHAT).get('join')
+      request.onsuccess = () => resolve(request.result?.messages ?? null)
+      request.onerror = () => reject(request.error)
     })
   }
 
