@@ -4,7 +4,7 @@ import { useChatStore } from '../stores/chat'
 import { useChatListStore } from '../stores/chatList'
 import { useMomentsStore } from '../stores/moments'
 import { useXhsStore } from '../stores/xhs'
-import { useExport } from '../composables/useExport'
+import type { useExport } from '../composables/useExport'
 
 // 子组件导入
 import BasicConfig from './config/BasicConfig.vue'
@@ -26,25 +26,33 @@ const emit = defineEmits<{
 
 const currentMode = ref<'chat' | 'join' | 'list' | 'moments' | 'xhs'>('chat')
 
-// 逻辑逻辑抽离 (现在不需要 showToast 了，由全局 window.$message 处理)
-const { isDownloading, isQueueing, exportIndex, queue, handleQuickDownload, addToQueue, removeFromQueue, clearQueue, handleBatchDownload } = useExport()
+const { exporter } = defineProps<{ exporter: ReturnType<typeof useExport> }>()
+const { isDownloading, isQueueing, isQuickDownloading, exportIndex, queue, addToQueue, removeFromQueue, clearQueue, handleBatchDownload } = exporter
+const initializedModes = new Set<typeof currentMode.value>()
+const isSwitchingMode = ref(false)
+
+const changeMode = async (mode: typeof currentMode.value) => {
+  if (mode === currentMode.value || isSwitchingMode.value) return
+  isSwitchingMode.value = true
+  try {
+    if (mode === 'chat' || mode === 'join') await chatStore.setMessageMode(mode)
+    currentMode.value = mode
+  } finally {
+    isSwitchingMode.value = false
+  }
+}
 
 // 监听模式切换
 watch(currentMode, (newMode) => {
   emit('modeChange', newMode)
+  if (newMode === 'chat' || newMode === 'join' || initializedModes.has(newMode)) return
+  initializedModes.add(newMode)
   if (newMode === 'list') {
     chatListStore.init()
   } else if (newMode === 'moments') {
     momentsStore.init()
-  } else if (newMode === 'xhs') {
-    xhsStore.init()
   } else {
-    chatStore.clearMessages()
-    if (newMode === 'join') {
-      chatStore.batchAddJoinMessages(10)
-    } else {
-      chatStore.batchAddRandomDialog(10)
-    }
+    xhsStore.init()
   }
 })
 </script>
@@ -54,11 +62,13 @@ watch(currentMode, (newMode) => {
     <!-- 模式切换 -->
     <div class="group">
       <div class="bg-black/20 p-1.5 rounded-2xl flex relative overflow-hidden backdrop-blur-sm">
-        <button @click="currentMode = 'chat'" class="flex-1 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-500 relative z-10" :class="currentMode === 'chat' ? 'text-white shadow-lg' : 'text-white/40 hover:text-white/60'">对话</button>
-        <button @click="currentMode = 'join'" class="flex-1 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-500 relative z-10" :class="currentMode === 'join' ? 'text-white shadow-lg' : 'text-white/40 hover:text-white/60'">拉人</button>
-        <button @click="currentMode = 'list'" class="flex-1 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-500 relative z-10" :class="currentMode === 'list' ? 'text-white shadow-lg' : 'text-white/40 hover:text-white/60'">列表</button>
-        <button @click="currentMode = 'moments'" class="flex-1 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-500 relative z-10" :class="currentMode === 'moments' ? 'text-white shadow-lg' : 'text-white/40 hover:text-white/60'">朋友圈</button>
-        <button @click="currentMode = 'xhs'" class="flex-1 py-2.5 rounded-xl text-[11px] font-medium transition-all duration-500 relative z-10" :class="currentMode === 'xhs' ? 'text-white shadow-lg' : 'text-white/40 hover:text-white/60'">小红书</button>
+        <button v-for="mode in (['chat', 'join', 'list', 'moments', 'xhs'] as const)" :key="mode" type="button"
+          @click="changeMode(mode)" :aria-pressed="currentMode === mode"
+          :disabled="isQueueing || isQuickDownloading || isSwitchingMode"
+          class="flex-1 py-2.5 min-h-10 rounded-xl text-xs font-medium transition-colors relative z-10"
+          :class="currentMode === mode ? 'text-[#162422]' : 'text-white/75 hover:text-white'">
+          {{ { chat: '对话', join: '拉人', list: '列表', moments: '朋友圈', xhs: '小红书' }[mode] }}
+        </button>
         <div class="absolute top-1.5 bottom-1.5 w-[calc(20%-4.8px)] rounded-xl transition-all duration-500 ease-spring"
              :class="[
                currentMode === 'xhs' ? 'bg-[#FF2442]' : 'bg-[#7A9D8C]',
@@ -87,7 +97,7 @@ watch(currentMode, (newMode) => {
       v-model:isDownloading="isDownloading"
       v-model:isQueueing="isQueueing"
       v-model:queue="queue"
-      @quick-download="handleQuickDownload"
+      :is-quick-downloading="isQuickDownloading"
       @add-to-queue="addToQueue"
       @remove-from-queue="removeFromQueue"
       @clear-queue="clearQueue"

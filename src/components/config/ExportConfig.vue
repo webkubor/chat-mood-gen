@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useChatStore } from '../../stores/chat'
-import BaseSelect from '../ui/BaseSelect.vue'
 import { useSound } from '../../composables/useSound'
 
 const chatStore = useChatStore()
@@ -11,6 +10,7 @@ const isDownloading = defineModel<boolean>('isDownloading', { required: true })
 const queue = defineModel<Array<{ id: string; url: string }>>('queue', { required: true })
 const isQueueing = defineModel<boolean>('isQueueing', { required: true })
 const previewUrl = ref<string | null>(null)
+defineProps<{ isQuickDownloading: boolean }>()
 
 const exportRatioOptions = [
   { label: '完整截图', value: 'full' },
@@ -27,7 +27,6 @@ const closePreview = () => {
 }
 
 defineEmits<{
-  (e: 'quickDownload'): void
   (e: 'addToQueue'): void
   (e: 'removeFromQueue', id: string): void
   (e: 'clearQueue'): void
@@ -44,8 +43,12 @@ defineEmits<{
 
     <div class="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-6">
       <div class="group">
-        <label class="block text-[10px] font-medium text-white/40 uppercase tracking-widest mb-2">导出比例</label>
-        <BaseSelect v-model="chatStore.exportRatio" :options="exportRatioOptions" />
+        <label for="export-ratio" class="block text-xs font-medium text-white/75 mb-2">导出比例</label>
+        <select id="export-ratio" v-model="chatStore.exportRatio"
+          class="w-full rounded-lg border border-white/20 bg-[#2C3639] px-3 py-2.5 text-sm text-white [color-scheme:dark]">
+          <option v-for="option in exportRatioOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+        </select>
+        <p v-if="chatStore.exportRatio === 'full'" class="text-xs text-white/60 mt-2">完整截图包含可滚动区域里的全部内容。</p>
       </div>
 
       <div class="group">
@@ -57,7 +60,7 @@ defineEmits<{
           </span>
           保留顶部状态栏
         </label>
-        <p class="text-[10px] text-white/30 mt-1 leading-relaxed">开着更像真截图（带时间、信号、电量）；关掉则从聊天标题栏开始裁</p>
+        <p class="text-xs text-white/60 mt-1">关闭后从标题栏开始导出。</p>
       </div>
 
       <div class="flex flex-col gap-3">
@@ -79,21 +82,21 @@ defineEmits<{
           </div>
           <div v-if="queue.length" class="grid grid-cols-4 gap-2">
             <div v-for="item in queue" :key="item.id" class="relative rounded-md overflow-hidden border border-white/10 bg-white/5">
-              <button type="button" class="w-full text-left cursor-zoom-in" @click="openPreview(item.url)">
-                <div class="w-full" :class="chatStore.exportRatio === '3:4' ? 'aspect-[3/4]' : chatStore.exportRatio === '1:3' ? 'aspect-[1/3]' : 'aspect-[9/16]'">
-                  <img :src="item.url" class="w-full h-full object-cover" />
+              <button type="button" aria-label="查看队列图片" class="w-full text-left cursor-zoom-in" @click="openPreview(item.url)">
+                <div class="w-full aspect-[3/4]">
+                  <img :src="item.url" alt="" class="w-full h-full object-contain" />
                 </div>
               </button>
-              <button @click="$emit('removeFromQueue', item.id)" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] leading-5">×</button>
+              <button aria-label="从队列移除" @click="$emit('removeFromQueue', item.id)" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] leading-5">×</button>
             </div>
           </div>
           <div v-if="queue.length" class="text-center text-[10px] text-white/30 mt-3">点击缩略图预览</div>
           <div v-else class="text-center text-[10px] text-white/30 py-3">暂无队列预览</div>
-          <button @click="$emit('addToQueue'); playSuccess()" :disabled="isQueueing" class="mt-3 w-full py-3 bg-white/10 hover:bg-white/15 text-white rounded-xl font-semibold text-sm border border-white/10 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          <button @click="$emit('addToQueue'); playSuccess()" :disabled="isQueueing || isQuickDownloading || isDownloading" class="mt-3 w-full py-3 bg-white/10 hover:bg-white/15 text-white rounded-xl font-semibold text-sm border border-white/10 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
             <svg v-if="isQueueing" class="animate-spin h-4 w-4 text-white/70" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <span>{{ isQueueing ? '加入中...' : '加入队列' }}</span>
           </button>
-          <button v-if="queue.length" @click="$emit('batchDownload'); playSuccess()" :disabled="isDownloading" class="mt-3 w-full py-3 bg-gradient-to-r from-[#7A9D8C] to-[#6B8E78] disabled:from-gray-600 disabled:to-gray-700 text-white rounded-xl font-semibold text-sm shadow-[0_10px_30px_-10px_rgba(122,157,140,0.4)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2">
+          <button v-if="queue.length" @click="$emit('batchDownload'); playSuccess()" :disabled="isDownloading || isQuickDownloading || isQueueing" class="mt-3 w-full py-3 bg-gradient-to-r from-[#7A9D8C] to-[#6B8E78] disabled:from-gray-600 disabled:to-gray-700 text-[#14201c] rounded-xl font-semibold text-sm shadow-[0_10px_30px_-10px_rgba(122,157,140,0.4)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2">
             <span v-if="!isDownloading">批量下载（{{ queue.length }}）</span>
             <span v-else class="flex items-center gap-2">
               <svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -105,8 +108,7 @@ defineEmits<{
       </div>
       
       <p class="text-center text-[10px] text-white/30 tracking-wide leading-relaxed">
-        将满意的预览加入队列后再批量下载<br/>
-        (浏览器可能会拦截多文件下载，请注意允许)
+        批量下载会把队列中的图片打包成一个 ZIP。
       </p>
     </div>
 

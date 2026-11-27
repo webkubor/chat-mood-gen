@@ -10,6 +10,9 @@ import defaultBg from '../assets/bg.jpg'
 
 export type { ChatMessage as Message, DeviceType, StatusBarTheme, PreviewTheme, ExportRatio }
 
+type SessionField = keyof Omit<ChatSession, 'key' | 'updated_at'>
+const sharedSettings = ['groupTitle', 'memberCount', 'exportRatio', 'isGroupChat', 'keepStatusBar', 'statusBarTime'] as const
+
 export const useChatStore = defineStore('chat', {
   state: () => ({
     groupTitle: '演唱会粉丝交流群',
@@ -21,7 +24,7 @@ export const useChatStore = defineStore('chat', {
     systemNameColor: '', 
     isHighlightingCapture: false,
     backgroundImage: defaultBg, // 这里保持引用链接，只有用户上传的存 Blob
-    exportRatio: '3:4' as ExportRatio,
+    exportRatio: 'full' as ExportRatio,
     deviceType: 'ios' as DeviceType,
     statusBarTheme: 'dark' as StatusBarTheme,
     statusBarTime: '23:30',
@@ -29,15 +32,24 @@ export const useChatStore = defineStore('chat', {
     currentUser: { name: '我', avatar: '' },
     isGroupChat: true,     // 群聊形态：标题显示 (人数)、消息显示昵称；关掉 = 单聊形态
     keepStatusBar: true,   // 导出时保留顶部状态栏（时间/信号/电量），真截图有
-    messages: [] as ChatMessage[]
+    messages: [] as ChatMessage[],
+    joinMessages: null as ChatMessage[] | null,
+    messageMode: 'chat' as 'chat' | 'join',
+    initialized: false
   }),
+  getters: {
+    activeMessages: (state): ChatMessage[] => state.messageMode === 'join'
+      ? state.joinMessages ?? []
+      : state.messages
+  },
   actions: {
     /**
      * 初始化：加载保存的会话，还原图片资源，并启动联动监听
      */
     async init() {
+      this.messageMode = 'chat'
+      if (this.initialized) return
       const avatarStore = useAvatarStore()
-      await avatarStore.init()
 
       // 1. 系统主题监听 (全局)
       const themeMedia = window.matchMedia('(prefers-color-scheme: dark)')
@@ -51,6 +63,7 @@ export const useChatStore = defineStore('chat', {
       }, { immediate: true })
 
       try {
+        await avatarStore.init()
         const saved = await localDB.loadChatSession() as ChatSession
         if (saved) {
           this.groupTitle = saved.groupTitle ?? this.groupTitle
@@ -77,18 +90,25 @@ export const useChatStore = defineStore('chat', {
           }
         }
 
-        // 如果没有消息，初始化一些预设对话
-        if (this.messages.length === 0) {
-          this.batchAddJoinMessages(1)
-          this.batchAddRandomDialog(5)
+        if (!saved) {
+          this.batchAddRandomDialog(10, false)
         }
       } catch (e) {
         console.error('加载聊天会话失败', e)
       }
+      this.initialized = true
+      watch(() => sharedSettings.map(field => this[field]), (next, previous) => {
+        const changed = sharedSettings.filter((_, index) => next[index] !== previous[index])
+        if (changed.length) void this.save(changed)
+      })
     },
 
-    async save() {
+    async save(fields?: readonly SessionField[]) {
       try {
+        if (!fields && this.messageMode === 'join') {
+          await localDB.saveJoinMessages(JSON.parse(JSON.stringify(this.activeMessages)))
+          return
+        }
         const sessionData: Omit<ChatSession, 'updated_at'> = {
           key: 'current',
           groupTitle: this.groupTitle,
@@ -101,10 +121,12 @@ export const useChatStore = defineStore('chat', {
           messages: JSON.parse(JSON.stringify(this.messages)),
           currentUser: JSON.parse(JSON.stringify(this.currentUser))
         }
+        const changed = fields ?? ['messages'] as const
+        const patch = Object.fromEntries(changed.map(field => [field, sessionData[field]]))
         await localDB.saveChatSession({
           ...sessionData,
           updated_at: new Date()
-        })
+        }, patch)
       } catch (e) {
         console.error('保存聊天会话失败', e)
       }
@@ -125,7 +147,7 @@ export const useChatStore = defineStore('chat', {
         // 注意：这里的 save() 会存当前的 URL，init 时需要特殊处理。
         // 为了简化，我们直接在 save 前替换为 ID
       }
-      this.save()
+      this.save(['backgroundImage'])
     },
 
     async setCurrentUserAvatar(file: File | string) {
@@ -137,29 +159,43 @@ export const useChatStore = defineStore('chat', {
         if (this.currentUser.avatar.startsWith('blob:')) URL.revokeObjectURL(this.currentUser.avatar)
         this.currentUser.avatar = URL.createObjectURL(file)
       }
-      this.save()
+      this.save(['currentUser'])
     },
 
     // --- 其他常规 Action ---
+    async setMessageMode(mode: 'chat' | 'join') {
+      if (mode === 'join' && this.joinMessages === null) {
+        const saved = await localDB.loadJoinMessages().catch(() => null)
+        this.joinMessages = saved ?? Array.from({ length: 10 }, () => this.makeInviteMessage())
+      }
+      this.messageMode = mode
+    },
+    replaceActiveMessages(messages: ChatMessage[]) {
+      if (this.messageMode === 'join') this.joinMessages = messages
+      else this.messages = messages
+      this.save()
+    },
     addMessage(msg: ChatMessage) {
-      this.messages.push(msg)
+      this.activeMessages.push(msg)
       this.save()
     },
     removeMessage(id: string) {
-      this.messages = this.messages.filter(m => m.id !== id)
-      this.save()
+      this.replaceActiveMessages(this.activeMessages.filter(m => m.id !== id))
     },
     clearMessages() {
-      this.messages = []
-      this.save()
+      this.replaceActiveMessages([])
     },
     updateMessage(id: string, field: 'content' | 'name', value: string) {
-      const msg = this.messages.find(m => m.id === id)
-      if (msg) {
-        if (field === 'content') msg.content = value
-        else if (field === 'name' && msg.sender) msg.sender.name = value
-        this.save()
+      const msg = this.activeMessages.find(m => m.id === id)
+      if (!msg) return
+      if (field === 'content') {
+        if (msg.content === value) return
+        msg.content = value
+      } else {
+        if (!msg.sender || msg.sender.name === value) return
+        msg.sender.name = value
       }
+      this.save()
     },
 
     getRandomUser() {
@@ -202,7 +238,7 @@ export const useChatStore = defineStore('chat', {
           }
         }
 
-        this.messages.push({
+        this.activeMessages.push({
           id: Math.random().toString(36).substr(2, 9),
           type: 'text',
           content,
@@ -214,7 +250,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     addSystemMessage(content: string) {
-      this.messages.push({
+      this.activeMessages.push({
         id: Math.random().toString(36).substr(2, 9),
         type: 'system',
         content
@@ -222,7 +258,7 @@ export const useChatStore = defineStore('chat', {
       this.save()
     },
 
-    addInviteSystemMessage() {
+    makeInviteMessage(): ChatMessage {
       const inviter = this.getRandomUser()
       const invited = this.getRandomUser()
       const other = this.getRandomUser()
@@ -233,7 +269,11 @@ export const useChatStore = defineStore('chat', {
         .replace(/{other}/g, `<span class="system-name">${other.name}</span>`)
         .replace(/{groupName}/g, `<span class="system-name">${this.groupTitle}</span>`)
 
-      this.addSystemMessage(content)
+      return { id: Math.random().toString(36).slice(2), type: 'system', content }
+    },
+
+    addInviteSystemMessage() {
+      this.addMessage(this.makeInviteMessage())
     },
 
     addRedPacketSystemMessage(senderName?: string) {
@@ -243,7 +283,7 @@ export const useChatStore = defineStore('chat', {
       } else {
         sender = this.getRandomUser()
       }
-      this.messages.push({
+      this.activeMessages.push({
         id: Math.random().toString(36).substr(2, 9),
         type: 'redpacket',
         content: '恭喜发财，大吉大利',
@@ -255,7 +295,7 @@ export const useChatStore = defineStore('chat', {
     addRedPacketOpenedMessage(receivedBy: string, sentBy?: string) {
       const senderName = sentBy || '我'
       const content = `${receivedBy} 领取了<span class="system-name">${senderName}</span>的<span class="text-[#ffbc42]">红包</span>`
-      this.messages.push({
+      this.activeMessages.push({
         id: Math.random().toString(36).substr(2, 9),
         type: 'red-packet-opened',
         content
@@ -264,13 +304,13 @@ export const useChatStore = defineStore('chat', {
     },
 
     batchAddJoinMessages(count: number) {
-      for (let i = 0; i < count; i++) {
-        this.addInviteSystemMessage()
-      }
+      this.activeMessages.push(...Array.from({ length: count }, () => this.makeInviteMessage()))
+      this.save()
     },
 
-    batchAddRandomDialog(count: number) {
-      if (!this.currentUser.avatar) {
+    batchAddRandomDialog(count: number, persist = true) {
+      const needsAvatar = !this.currentUser.avatar
+      if (needsAvatar) {
         const randomMe = this.getRandomUser()
         const currentName = this.currentUser.name || '我'
         this.currentUser = { name: currentName, avatar: randomMe.avatar! }
@@ -285,7 +325,7 @@ export const useChatStore = defineStore('chat', {
         const content = hypes[Math.floor(Math.random() * hypes.length)] || '...'
         const sender = isMe ? this.currentUser : this.getRandomUser() as { name: string; avatar: string }
         
-        this.messages.push({
+        this.activeMessages.push({
           id: Math.random().toString(36).substr(2, 9),
           type: 'text',
           content,
@@ -293,7 +333,10 @@ export const useChatStore = defineStore('chat', {
           isMe
         })
       }
-      this.save()
+      if (persist) {
+        if (needsAvatar) this.save(['currentUser'])
+        this.save()
+      }
     }
   }
 })

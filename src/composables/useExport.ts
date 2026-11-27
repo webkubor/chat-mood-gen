@@ -4,6 +4,7 @@ import { toCanvas } from 'html-to-image'
 import JSZip from 'jszip'
 import { localDB } from '../utils/localdb'
 import { useChatStore } from '../stores/chat'
+import { getCaptureBounds } from '../utils/capture'
 
 interface QueueItem {
   id: string
@@ -20,6 +21,7 @@ export function useExport() {
   const exportIndex = ref(0)
   const queue = ref<QueueItem[]>([])
   const isQueueing = ref(false)
+  const isQuickDownloading = ref(false)
 
   const restoreQueue = async () => {
     try {
@@ -59,49 +61,50 @@ export function useExport() {
     }
 
     try {
-      const fullCanvas = await toCanvas(element, {
+      const bounds = getCaptureBounds(element, header, chatStore.exportRatio, chatStore.keepStatusBar)
+      if (!bounds.width || !bounds.height) throw new Error('截图区域没有可导出的尺寸')
+      const staging = document.createElement('div')
+      staging.setAttribute('aria-hidden', 'true')
+      staging.inert = true
+      Object.assign(staging.style, { position: 'fixed', top: '0', left: '-20000px' })
+      const staged = element.cloneNode(true) as HTMLElement
+      staged.removeAttribute('id')
+      Object.assign(staged.style, {
+        overflow: 'hidden', transition: 'none',
+        width: `${bounds.width}px`, height: `${bounds.renderHeight}px`,
+      })
+      staging.appendChild(staged)
+      document.body.appendChild(staging)
+      const fullCanvas = await toCanvas(staged, {
         cacheBust: true,
         backgroundColor: '#ededed',
         pixelRatio: 2,
-        skipAutoScale: true
-      })
+        width: bounds.width,
+        height: bounds.renderHeight,
+        filter: node => !(node instanceof Element && node.hasAttribute('data-export-ignore')),
+      }).finally(() => staging.remove())
 
-      const scale = fullCanvas.width / element.offsetWidth
-      const cropWidth = element.offsetWidth
-      // 保留状态栏时从屏幕最顶端裁（真截图就是这样的，含时间/信号/电量）
-      const cropTop = chatStore.keepStatusBar ? 0 : (header ? Math.max(0, header.offsetTop + 6) : 0)
-      const fullHeight = element.offsetHeight
-      const availableHeight = Math.max(0, fullHeight - cropTop)
-      const exportRatio = chatStore.exportRatio
-      const targetHeight = exportRatio === '3:4'
-        ? Math.round(cropWidth * 4 / 3)
-        : exportRatio === '1:3'
-          ? Math.round(cropWidth * 3)
-          : availableHeight
-      const exportHeight = exportRatio === 'full'
-        ? availableHeight
-        : Math.min(targetHeight, availableHeight)
-
+      const scale = fullCanvas.width / bounds.width
       const cropCanvas = document.createElement('canvas')
-      cropCanvas.width = Math.round(cropWidth * scale)
-      cropCanvas.height = Math.round(exportHeight * scale)
+      cropCanvas.width = fullCanvas.width
+      cropCanvas.height = Math.round(bounds.height * scale)
       const ctx = cropCanvas.getContext('2d')
       if (!ctx) throw new Error('Canvas Context 创建失败')
 
       ctx.drawImage(
         fullCanvas,
         0,
-        cropTop * scale,
-        cropWidth * scale,
-        exportHeight * scale,
+        bounds.top * scale,
+        cropCanvas.width,
+        cropCanvas.height,
         0,
         0,
-        cropWidth * scale,
-        exportHeight * scale
+        cropCanvas.width,
+        cropCanvas.height
       )
 
-      return await new Promise<Blob | null>((resolve) => {
-        cropCanvas.toBlob((blob) => resolve(blob), 'image/png')
+      return await new Promise<Blob>((resolve, reject) => {
+        cropCanvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('无法生成 PNG')), 'image/png')
       })
     } catch (err) {
       console.error('渲染失败:', err)
@@ -111,17 +114,20 @@ export function useExport() {
   }
 
   const handleQuickDownload = async () => {
-    const blob = await capturePreviewBlob()
-    if (!blob) {
-      window.$message.error('导出失败，请重试')
-      return
+    if (isQuickDownloading.value || isQueueing.value || isDownloading.value) return
+    isQuickDownloading.value = true
+    try {
+      const blob = await capturePreviewBlob()
+      if (!blob) return
+      triggerDownload(`chat-mood-${Date.now()}.png`, blob)
+      window.$message.success('PNG 已生成')
+    } finally {
+      isQuickDownloading.value = false
     }
-    triggerDownload(`wechat-preview-${Date.now()}.png`, blob)
-    window.$message.success('预览图导出成功')
   }
 
   const addToQueue = async () => {
-    if (isQueueing.value) return
+    if (isQueueing.value || isQuickDownloading.value || isDownloading.value) return
     isQueueing.value = true
     const blob = await capturePreviewBlob()
     if (!blob) {
@@ -165,7 +171,7 @@ export function useExport() {
   }
 
   const handleBatchDownload = async () => {
-    if (isDownloading.value) return
+    if (isDownloading.value || isQueueing.value || isQuickDownloading.value) return
     if (queue.value.length === 0) return
     isDownloading.value = true
     
@@ -198,6 +204,7 @@ export function useExport() {
     exportIndex,
     queue,
     isQueueing,
+    isQuickDownloading,
     handleQuickDownload,
     addToQueue,
     removeFromQueue,

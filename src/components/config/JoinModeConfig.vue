@@ -11,15 +11,12 @@ const { playSuccess, playWater } = useSound()
 const genCount = ref(10)
 const MIN_GEN_COUNT = 5
 const MAX_GEN_COUNT = 60
-const hasMessages = computed(() => chatStore.messages.length > 0)
+const hasMessages = computed(() => chatStore.activeMessages.length > 0)
 const redPacketSender = ref<'random'>('random')
 const redPacketReceiver = ref<'random'>('random')
 
 onMounted(async () => {
   await corpusStore.init()
-  if (chatStore.messages.length === 0) {
-    chatStore.batchAddJoinMessages(genCount.value)
-  }
 })
 
 watch(genCount, (value) => {

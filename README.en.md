@@ -2,7 +2,7 @@
 
 # WeChat Chat Gen
 
-A front-end app for generating high-quality WeChat chat-style mockup images. Supports four modes — chat / invite / list / Moments — plus corpus management and batch screenshot export.
+A front-end app for making chat and social mockup images. It supports chat, invite, list, Moments and Xiaohongshu modes, with a local content library and image export.
 
 **Live demo → [wechat.webkubor.online](https://wechat.webkubor.online)** (no signup, open and use)
 
@@ -76,10 +76,9 @@ The site ships a PWA Service Worker; returning visitors need to refresh or wait 
 
 ## Usage
 
-1. Adjust group and styling config in the right panel.
-2. Pick the target mode, adjust its config, click "Refresh preview only".
-3. Click "Batch download all results" to export multiple images.
-4. Corpus entry is at top-right "Corpus".
+1. On mobile, open the editor with **编辑内容**. Choose a mode and edit its content while previewing the result. Chat and invite keep separate drafts.
+2. Use **下载 PNG** to download one image. Full export includes the scrollable content.
+3. To export multiple images, add each one to the queue and download them together as a ZIP.
 
 ## Corpus placeholders
 
